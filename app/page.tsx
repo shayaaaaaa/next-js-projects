@@ -1,9 +1,26 @@
-import Image from "next/image";
+"use client";
+import { FormEvent, useState} from "react";
+
 
 export default function Home() {
-  return (
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        
-      </main>
-  );
+  const [inputVal, setInputVal] = useState("");
+  const handleSubmit = (event: FormEvent ) => {
+    event.preventDefault();
+  }
+    return (
+        <div>
+            <div>
+                <h1>
+                    Enter Your Name
+                </h1>
+            </div>
+            <form onSubmit={handleSubmit}>
+                <input type="text" 
+                placeholder="Your name"  
+                value={inputVal}
+                onChange={(e) => setInputVal(e.target.value)} />
+                <button type="submit">Predict Data</button>
+            </form>
+        </div>
+    );
 }
