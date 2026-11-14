@@ -1,25 +1,42 @@
 import { Suspense } from "react";
 
-const getPredictedAge = async (name: string) => {
-  const res = await fetch(
+type PredictionResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; message: string };
+
+const fetchPrediction = async <T,>(
+  url: string
+): Promise<PredictionResult<T>> => {
+  try {
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+
+    if (!res.ok) {
+      return { ok: false, message: `Unavailable (HTTP ${res.status})` };
+    }
+
+    return {
+      ok: true,
+      data: (await res.json()) as T,
+    };
+  } catch {
+    return { ok: false, message: "Could not load prediction" };
+  }
+};
+
+const getPredictedAge = (name: string) =>
+  fetchPrediction<{ age?: number | null }>(
     `https://api.agify.io?name=${encodeURIComponent(name)}`
   );
-  return res.json();
-};
 
-const getPredictedGender = async (name: string) => {
-  const res = await fetch(
+const getPredictedGender = (name: string) =>
+  fetchPrediction<{ gender?: string | null }>(
     `https://api.genderize.io?name=${encodeURIComponent(name)}`
   );
-  return res.json();
-};
 
-const getPredictedNationality = async (name: string) => {
-  const res = await fetch(
-    `https://api.nationalize.io?name=${encodeURIComponent(name)}`
-  );
-  return res.json();
-};
+const getPredictedNationality = (name: string) =>
+  fetchPrediction<{
+    country?: Array<{ country_id: string }> | null;
+  }>(`https://api.nationalize.io?name=${encodeURIComponent(name)}`);
 
 interface Params {
   params: Promise<{ name: string }>;
@@ -28,12 +45,12 @@ interface Params {
 export default function Page({ params }: Params) {
   return (
     <Suspense fallback={<main>Loading...</main>}>
-      <PredictionName params={params} />
+      <Prediction params={params} />
     </Suspense>
   );
 }
 
-async function PredictionName({ params }: Params) {
+async function Prediction({ params }: Params) {
   const { name } = await params;
 
   const [age, gender, nationality] = await Promise.all([
@@ -48,14 +65,20 @@ async function PredictionName({ params }: Params) {
         <div className="uppercase tracking-wide text-sm text-indigo-500 font-semibold">
           Personal Info
         </div>
+
         <div className="block mt-1 text-lg leading-tight font-medium text-black">
-          Age: {age?.age ?? "Unknown"}
+          Age: {age.ok ? age.data.age ?? "Unknown" : age.message}
         </div>
+
         <div className="block mt-1 text-lg leading-tight font-medium text-black">
-          Gender: {gender?.gender ?? "Unknown"}
+          Gender: {gender.ok ? gender.data.gender ?? "Unknown" : gender.message}
         </div>
+
         <div className="block mt-1 text-lg leading-tight font-medium text-black">
-          Nationality: {nationality?.country?.[0]?.country_id ?? "Unknown"}
+          Nationality:{" "}
+          {nationality.ok
+            ? nationality.data.country?.[0]?.country_id ?? "Unknown"
+            : nationality.message}
         </div>
       </div>
     </div>
