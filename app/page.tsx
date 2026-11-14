@@ -1,11 +1,16 @@
 "use client";
 import { FormEvent, useState} from "react";
-
+import {useRouter} from 'next/navigation';
 
 export default function Home() {
   const [inputVal, setInputVal] = useState("");
+  const {push} = useRouter();
   const handleSubmit = (event: FormEvent ) => {
     event.preventDefault();
+    const name = inputVal.trim();
+    if (name) {
+      push(`/prediction/${encodeURIComponent(name)}`);
+    }
   }
     return (
         <div>
